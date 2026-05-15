@@ -10,7 +10,7 @@ const steps = [
   {
     number: 2,
     title: 'Conexão de Energia',
-    description: 'Conecte o chicote enviado (duas pontas, uma macho e outra fêmea), retire o chicote original do moedeiro, conecete este no fêmea da machine pay e o macho da machine pay conecte onde estava o original do moedeiro.',
+    description: 'Conecte o chicote enviado (duas pontas, uma macho e outra fêmea), retire o chicote original do moedeiro, conecte este no fêmea da machine pay e o macho da machine pay conecte onde estava o original do moedeiro.',
   },
   {
     number: 3,
@@ -43,7 +43,7 @@ const Manual = () => {
             Guia Completo de Instalação
           </h1>
           <p className="text-xl text-gray-600 animate-slideInRight">
-            Siga estes 5 passos simples para começar a usar sua máquina Paymas.
+            Siga estes 5 passos simples para começar a usar sua máquina MachinePay.
           </p>
         </header>
 
