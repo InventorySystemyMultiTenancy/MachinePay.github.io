@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 const SpeechRecognition =
   typeof window !== 'undefined' &&
@@ -50,8 +50,25 @@ const SpeakingPulse = () => (
   </div>
 );
 
+const TypingIndicator = () => (
+  <div className="flex justify-start">
+    <div
+      className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600 shadow-sm"
+      aria-label="Mario esta digitando"
+    >
+      <span className="font-semibold">Mario digitando</span>
+      <span className="flex items-center gap-1" aria-hidden="true">
+        <span className="h-2 w-2 animate-bounce rounded-full bg-orange-500 [animation-delay:-0.2s]" />
+        <span className="h-2 w-2 animate-bounce rounded-full bg-orange-500 [animation-delay:-0.1s]" />
+        <span className="h-2 w-2 animate-bounce rounded-full bg-orange-500" />
+      </span>
+    </div>
+  </div>
+);
+
 const MachineFriendChat = () => {
   const recognitionRef = useRef(null);
+  const messagesEndRef = useRef(null);
   const [messages, setMessages] = useState(initialMessages);
   const [typedText, setTypedText] = useState('');
   const [status, setStatus] = useState('idle');
@@ -68,6 +85,13 @@ const MachineFriendChat = () => {
     if (!canUseSpeech) return 'Seu navegador nao liberou transcricao por voz.';
     return 'Pronto para ajudar por voz ou texto.';
   }, [canUseSpeech, isListening, isSending]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'end',
+    });
+  }, [messages, isSending]);
 
   const speakAnswer = (text) => {
     if (!('speechSynthesis' in window)) return;
@@ -90,6 +114,12 @@ const MachineFriendChat = () => {
     setIsSpeaking(false);
   };
 
+  const stopListening = () => {
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    setStatus((current) => (current === 'listening' ? 'idle' : current));
+  };
+
   const sendMessage = async (content) => {
     const cleanContent = content.trim();
     if (!cleanContent || isSending) return;
@@ -109,7 +139,15 @@ const MachineFriendChat = () => {
       });
 
       const rawData = await response.text();
-      const data = rawData ? JSON.parse(rawData) : {};
+      let data = {};
+
+      try {
+        data = rawData ? JSON.parse(rawData) : {};
+      } catch {
+        throw new Error(
+          `O servidor respondeu texto/HTML em vez de JSON. Verifique se a URL da IA esta correta: ${endpoint}`
+        );
+      }
 
       if (!response.ok) {
         throw new Error(
@@ -131,6 +169,11 @@ const MachineFriendChat = () => {
   const startListening = () => {
     if (!canUseSpeech || isSending) return;
 
+    if (isListening) {
+      stopListening();
+      return;
+    }
+
     stopSpeaking();
     setError('');
 
@@ -149,6 +192,10 @@ const MachineFriendChat = () => {
       setError('Nao consegui acessar o microfone. Verifique a permissao do navegador.');
     };
     recognition.onend = () => {
+      if (recognitionRef.current === recognition) {
+        recognitionRef.current = null;
+      }
+
       setStatus((current) => (current === 'listening' ? 'idle' : current));
     };
     recognition.onresult = (event) => {
@@ -195,6 +242,8 @@ const MachineFriendChat = () => {
             type="button"
             onClick={startListening}
             disabled={!canUseSpeech || isSending}
+            aria-label={isListening ? 'Parar de ouvir' : 'Falar com Mario'}
+            title={isListening ? 'Parar de ouvir' : 'Falar com Mario'}
             className="inline-flex items-center justify-center gap-2 rounded-md bg-orange-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-gray-500"
           >
             {isListening ? (
@@ -205,7 +254,7 @@ const MachineFriendChat = () => {
             ) : (
               <MicrophoneIcon />
             )}
-            Falar com Mario
+            {isListening ? 'Parar de ouvir' : 'Falar com Mario'}
           </button>
         </div>
       </div>
@@ -233,6 +282,8 @@ const MachineFriendChat = () => {
             </div>
           </div>
         ))}
+        {isSending && <TypingIndicator />}
+        <div ref={messagesEndRef} aria-hidden="true" />
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3 border-t border-gray-200 p-4 md:flex-row">
@@ -258,8 +309,8 @@ const MachineFriendChat = () => {
           type="button"
           onClick={startListening}
           disabled={!canUseSpeech || isSending}
-          aria-label="Falar com Mario"
-          title="Falar com Mario"
+          aria-label={isListening ? 'Parar de ouvir' : 'Falar com Mario'}
+          title={isListening ? 'Parar de ouvir' : 'Falar com Mario'}
           className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-orange-500 text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-gray-400"
         >
           {isListening ? (
