@@ -17,6 +17,12 @@ if (existsSync('.env')) {
 
 const PORT = Number(process.env.MACHINEFRIEND_PORT || 8787);
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-5-mini';
+const MACHINEFRIEND_HISTORY_LIMIT = Number(
+  process.env.MACHINEFRIEND_HISTORY_LIMIT || 6
+);
+const MACHINEFRIEND_MAX_OUTPUT_TOKENS = Number(
+  process.env.MACHINEFRIEND_MAX_OUTPUT_TOKENS || 350
+);
 
 const MACHINEFRIEND_CONTEXT = `
 Voce e o Mario, assistente de suporte da Machine Pay para instalacao, configuracao e diagnostico.
@@ -56,6 +62,11 @@ Configuracao de internet da Machine Pay:
 - Finalizar clicando em Enviar apenas uma vez.
 - Conferir se a Machine Pay ficou online na plataforma. Ela fica colorida quando esta online.
 - Depois testar pagamentos e confirmar se as jogadas liberam normalmente.
+
+Regras de resposta:
+- Responda curto, direto e em passos pequenos, especialmente quando a conversa for por voz.
+- Normalmente use ate 4 frases. So detalhe mais quando o cliente pedir.
+- Priorize a proxima acao pratica antes de explicar o motivo.
 
 Regras de suporte:
 - Quando o cliente disser "nao ficou online", verificar: senha Wi-Fi, rede correta, distancia/sinal, ID do caixa com 9 digitos, clique unico em Enviar e se reiniciou/resetou a rede Machine Pay.
@@ -104,7 +115,7 @@ const getOutputText = (data) => {
 const normalizeMessages = (messages) =>
   messages
     .filter((message) => ['user', 'assistant'].includes(message.role))
-    .slice(-10)
+    .slice(-MACHINEFRIEND_HISTORY_LIMIT)
     .map((message) => ({
       role: message.role,
       content: String(message.content || '').slice(0, 2_000),
@@ -121,7 +132,7 @@ const createMachineFriendAnswer = async (messages) => {
       model: OPENAI_MODEL,
       instructions: MACHINEFRIEND_CONTEXT,
       input: normalizeMessages(messages),
-      max_output_tokens: 700,
+      max_output_tokens: MACHINEFRIEND_MAX_OUTPUT_TOKENS,
     }),
   });
 

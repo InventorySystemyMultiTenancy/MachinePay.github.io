@@ -15,6 +15,43 @@ const initialMessages = [
   },
 ];
 
+const preferredVoiceNames = [
+  'Microsoft Antonio',
+  'Microsoft Antônio',
+  'Microsoft Daniel',
+  'Felipe',
+  'Ricardo',
+  'Antonio',
+  'Antônio',
+  'Daniel',
+];
+
+const avoidedVoiceNames = ['Francisca', 'Maria', 'Luciana'];
+
+const pickMarioVoice = (voices) => {
+  const portugueseVoices = voices.filter((voice) =>
+    voice.lang?.toLowerCase().startsWith('pt')
+  );
+  const maleLeaningVoices = portugueseVoices.filter(
+    (voice) =>
+      !avoidedVoiceNames.some((name) =>
+        voice.name.toLowerCase().includes(name.toLowerCase())
+      )
+  );
+
+  return (
+    maleLeaningVoices.find((voice) =>
+      preferredVoiceNames.some((name) =>
+        voice.name.toLowerCase().includes(name.toLowerCase())
+      )
+    ) ||
+    maleLeaningVoices.find((voice) => voice.lang?.toLowerCase() === 'pt-br') ||
+    maleLeaningVoices[0] ||
+    portugueseVoices[0] ||
+    null
+  );
+};
+
 const MicrophoneIcon = () => (
   <svg
     aria-hidden="true"
@@ -74,6 +111,7 @@ const MachineFriendChat = () => {
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [marioVoice, setMarioVoice] = useState(null);
 
   const isListening = status === 'listening';
   const isSending = status === 'sending';
@@ -93,13 +131,31 @@ const MachineFriendChat = () => {
     });
   }, [messages, isSending]);
 
+  useEffect(() => {
+    if (!('speechSynthesis' in window)) return undefined;
+
+    const loadVoices = () => {
+      setMarioVoice(pickMarioVoice(window.speechSynthesis.getVoices()));
+    };
+
+    loadVoices();
+    window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
+
+    return () => {
+      window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
+    };
+  }, []);
+
   const speakAnswer = (text) => {
     if (!('speechSynthesis' in window)) return;
 
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'pt-BR';
-    utterance.rate = 0.98;
+    utterance.voice = marioVoice;
+    utterance.rate = 0.94;
+    utterance.pitch = 0.88;
+    utterance.volume = 1;
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
